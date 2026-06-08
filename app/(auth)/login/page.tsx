@@ -93,9 +93,6 @@ function LoginForm() {
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-white/20" />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-transparent px-2 text-slate-400">or continue with email</span>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
