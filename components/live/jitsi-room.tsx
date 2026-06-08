@@ -68,6 +68,7 @@ export function JitsiRoom({
         parentNode: containerRef.current,
         width: "100%",
         height: "100%",
+        style: { border: 0, height: "100%", width: "100%" },
         userInfo: { displayName: userName, email: userEmail },
         configOverwrite: {
           startWithAudioMuted: !isModerator,
@@ -127,19 +128,19 @@ export function JitsiRoom({
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
+    <div className="h-screen w-screen bg-slate-900 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-slate-800 text-white px-4 py-2.5 flex items-center gap-3 shrink-0">
+      <div className="bg-slate-800 text-white px-4 py-2.5 flex items-center gap-3 shrink-0 h-12">
         <Link href="/student/dashboard">
           <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 w-8 h-8">
             <ArrowLeft className="w-4 h-4" />
           </Button>
         </Link>
-        <div className="flex-1">
-          <p className="font-medium text-sm">{sessionTitle}</p>
-          <p className="text-xs text-slate-400">{courseTitle}</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm truncate">{sessionTitle}</p>
+          <p className="text-xs text-slate-400 truncate">{courseTitle}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {isModerator && (
             <span className="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
               Moderator
@@ -153,8 +154,8 @@ export function JitsiRoom({
         </div>
       </div>
 
-      {/* Jitsi container */}
-      <div className="flex-1 relative">
+      {/* Jitsi container — fills all remaining height */}
+      <div className="flex-1 relative overflow-hidden">
         {loading && (
           <div
             className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10 cursor-pointer"
@@ -164,7 +165,7 @@ export function JitsiRoom({
               <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mx-auto" />
               <div>
                 <p className="text-slate-300 text-sm">Connecting to live class...</p>
-                <p className="text-slate-500 text-xs mt-1">Click anywhere to dismiss or open directly below</p>
+                <p className="text-slate-500 text-xs mt-1">Click anywhere to dismiss</p>
               </div>
               <a href={directUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>
                 <Button size="sm" variant="outline" className="text-slate-300 border-slate-600 hover:bg-slate-800">
@@ -174,7 +175,7 @@ export function JitsiRoom({
             </div>
           </div>
         )}
-        <div ref={containerRef} className="w-full h-full min-h-[calc(100vh-52px)]" />
+        <div ref={containerRef} className="w-full h-full" />
       </div>
     </div>
   );
