@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft, ExternalLink, Video, Copy, Check,
+  Users, Clock, Mic, Camera, Monitor
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface JitsiRoomProps {
@@ -14,168 +17,136 @@ interface JitsiRoomProps {
   isModerator: boolean;
 }
 
-interface JitsiAPI {
-  executeCommand: (command: string, ...args: unknown[]) => void;
-  dispose: () => void;
-  addEventListeners: (events: Record<string, () => void>) => void;
-}
-
-declare global {
-  interface Window {
-    JitsiMeetExternalAPI: (new (domain: string, options: Record<string, unknown>) => JitsiAPI) | undefined;
-  }
-}
-
 export function JitsiRoom({
   roomId,
   sessionTitle,
   courseTitle,
   userName,
-  userEmail,
   isModerator,
 }: JitsiRoomProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const apiRef = useRef<JitsiAPI | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [time, setTime] = useState(new Date());
 
-  const directUrl = `https://meet.jit.si/${roomId}`;
+  const meetUrl = `https://meet.jit.si/${roomId}#userInfo.displayName="${encodeURIComponent(userName)}"`;
 
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://meet.jit.si/external_api.js";
-    script.async = true;
-    script.onload = () => initJitsi();
-    script.onerror = () => setError("LOAD_FAILED");
-    document.head.appendChild(script);
-
-    return () => {
-      apiRef.current?.dispose();
-      if (document.head.contains(script)) document.head.removeChild(script);
-    };
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
 
-  const initJitsi = () => {
-    if (!containerRef.current || !window.JitsiMeetExternalAPI) {
-      setError("LOAD_FAILED");
-      return;
-    }
-
-    try {
-      const JitsiAPI = window.JitsiMeetExternalAPI;
-      apiRef.current = new JitsiAPI("meet.jit.si", {
-        roomName: roomId,
-        parentNode: containerRef.current,
-        width: "100%",
-        height: "100%",
-        style: { border: 0, height: "100%", width: "100%" },
-        userInfo: { displayName: userName, email: userEmail },
-        configOverwrite: {
-          startWithAudioMuted: !isModerator,
-          startWithVideoMuted: !isModerator,
-          disableDeepLinking: true,
-          enableWelcomePage: false,
-          prejoinPageEnabled: false,
-          disableInviteFunctions: false,
-          toolbarButtons: [
-            "microphone", "camera", "desktop", "fullscreen",
-            "hangup", "chat", "raisehand", "tileview", "whiteboard",
-          ],
-        },
-      });
-
-      // Hide loading on join OR after a 6s timeout (event may not always fire)
-      const timeout = setTimeout(() => setLoading(false), 6000);
-
-      apiRef.current.addEventListeners({
-        videoConferenceJoined: () => { clearTimeout(timeout); setLoading(false); },
-        videoConferenceLeft: () => { clearTimeout(timeout); },
-        errorOccurred: () => { clearTimeout(timeout); setLoading(false); },
-      });
-    } catch {
-      setError("INIT_FAILED");
-    }
+  const copyLink = () => {
+    navigator.clipboard.writeText(`https://meet.jit.si/${roomId}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center space-y-5 p-8 max-w-sm">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
-          <div>
-            <p className="text-white font-semibold text-lg mb-2">Could not load video call</p>
-            <p className="text-slate-400 text-sm">
-              {error === "LOAD_FAILED"
-                ? "Failed to load Jitsi Meet script. This may be a network or browser extension issue."
-                : "Could not initialize the video room."}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <a href={directUrl} target="_blank" rel="noreferrer" className="block">
-              <Button variant="gradient" className="w-full">
-                <ExternalLink className="w-4 h-4" /> Open in Jitsi Directly
-              </Button>
-            </a>
-            <Link href="/student/dashboard">
-              <Button variant="outline" className="w-full text-white border-white/20">
-                <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const join = () => {
+    setJoined(true);
+    window.open(meetUrl, "_blank", "noopener,noreferrer");
+  };
 
   return (
-    <div className="h-screen w-screen bg-slate-900 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="bg-slate-800 text-white px-4 py-2.5 flex items-center gap-3 shrink-0 h-12">
-        <Link href="/student/dashboard">
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 w-8 h-8">
+    <div className="h-screen w-screen bg-slate-950 flex flex-col overflow-hidden">
+      {/* Top bar */}
+      <div className="bg-slate-900 border-b border-slate-800 px-5 py-3 flex items-center gap-3 shrink-0">
+        <Link href={isModerator ? "/instructor/live-sessions" : "/student/dashboard"}>
+          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-white/10 w-8 h-8">
             <ArrowLeft className="w-4 h-4" />
           </Button>
         </Link>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm truncate">{sessionTitle}</p>
-          <p className="text-xs text-slate-400 truncate">{courseTitle}</p>
+          <p className="font-semibold text-white text-sm truncate">{sessionTitle}</p>
+          <p className="text-xs text-slate-500 truncate">{courseTitle}</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {isModerator && (
-            <span className="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
-              Moderator
-            </span>
-          )}
-          <a href={directUrl} target="_blank" rel="noreferrer" title="Open in new tab">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 w-8 h-8">
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Button>
-          </a>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <Clock className="w-3.5 h-3.5" />
+          {time.toLocaleTimeString()}
         </div>
       </div>
 
-      {/* Jitsi container — fills all remaining height */}
-      <div className="flex-1 relative overflow-hidden">
-        {loading && (
-          <div
-            className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10 cursor-pointer"
-            onClick={() => setLoading(false)}
-          >
-            <div className="text-center space-y-4">
-              <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mx-auto" />
-              <div>
-                <p className="text-slate-300 text-sm">Connecting to live class...</p>
-                <p className="text-slate-500 text-xs mt-1">Click anywhere to dismiss</p>
-              </div>
-              <a href={directUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>
-                <Button size="sm" variant="outline" className="text-slate-300 border-slate-600 hover:bg-slate-800">
-                  <ExternalLink className="w-3.5 h-3.5" /> Open in Jitsi App
-                </Button>
-              </a>
+      {/* Main content */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-lg space-y-6">
+
+          {/* Status card */}
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 text-center space-y-4">
+            <div className="w-16 h-16 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto">
+              <Video className="w-8 h-8 text-indigo-400" />
             </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">{sessionTitle}</h2>
+              <p className="text-slate-400 text-sm mt-1">{courseTitle}</p>
+            </div>
+
+            <div className="flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-green-400 text-sm font-medium">Live session is active</span>
+            </div>
+
+            {isModerator && (
+              <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-3 text-sm text-indigo-300">
+                You are the <strong>host</strong> of this session. Join first to open the room for attendees.
+              </div>
+            )}
           </div>
-        )}
-        <div ref={containerRef} className="w-full h-full" />
+
+          {/* Tips */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: Mic, label: "Check microphone", sub: "before joining" },
+              { icon: Camera, label: "Test your camera", sub: "for best quality" },
+              { icon: Monitor, label: "Share screen", sub: "available in-call" },
+            ].map(({ icon: Icon, label, sub }) => (
+              <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+                <Icon className="w-5 h-5 text-slate-400 mx-auto mb-1.5" />
+                <p className="text-xs text-white font-medium">{label}</p>
+                <p className="text-xs text-slate-500">{sub}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="space-y-3">
+            <Button
+              onClick={join}
+              variant="gradient"
+              className="w-full h-12 text-base font-semibold"
+              size="lg"
+            >
+              <Video className="w-5 h-5" />
+              {joined ? "Rejoin Meeting" : "Join Meeting Now"}
+              <ExternalLink className="w-4 h-4 ml-1 opacity-60" />
+            </Button>
+
+            {joined && (
+              <p className="text-center text-xs text-slate-500">
+                Meeting opened in a new tab. Come back here when you&apos;re done.
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-400 font-mono truncate">
+                meet.jit.si/{roomId}
+              </div>
+              <Button
+                onClick={copyLink}
+                variant="outline"
+                size="sm"
+                className="border-slate-700 text-slate-300 hover:bg-slate-800 shrink-0"
+              >
+                {copied ? <><Check className="w-3.5 h-3.5 text-green-400" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy Link</>}
+              </Button>
+            </div>
+
+            {isModerator && (
+              <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-400">
+                <Users className="w-4 h-4 shrink-0 text-indigo-400" />
+                Share the copied link with your students so they can join directly.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
