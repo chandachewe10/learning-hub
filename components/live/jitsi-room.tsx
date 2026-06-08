@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface JitsiRoomProps {
@@ -39,22 +39,27 @@ export function JitsiRoom({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const directUrl = `https://meet.jit.si/${roomId}`;
+
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://meet.jit.si/external_api.js";
     script.async = true;
     script.onload = () => initJitsi();
-    script.onerror = () => setError("Failed to load Jitsi Meet. Please check your connection.");
+    script.onerror = () => setError("LOAD_FAILED");
     document.head.appendChild(script);
 
     return () => {
       apiRef.current?.dispose();
-      document.head.removeChild(script);
+      if (document.head.contains(script)) document.head.removeChild(script);
     };
   }, []);
 
   const initJitsi = () => {
-    if (!containerRef.current || !window.JitsiMeetExternalAPI) return;
+    if (!containerRef.current || !window.JitsiMeetExternalAPI) {
+      setError("LOAD_FAILED");
+      return;
+    }
 
     try {
       const JitsiAPI = window.JitsiMeetExternalAPI;
@@ -70,41 +75,52 @@ export function JitsiRoom({
           disableDeepLinking: true,
           enableWelcomePage: false,
           prejoinPageEnabled: false,
-        },
-        interfaceConfigOverwrite: {
-          SHOW_JITSI_WATERMARK: false,
-          SHOW_BRAND_WATERMARK: false,
-          DEFAULT_REMOTE_DISPLAY_NAME: "Student",
-          TOOLBAR_BUTTONS: [
-            "microphone", "camera", "closedcaptions", "desktop",
-            "fullscreen", "fodeviceselection", "hangup", "chat",
-            "recording", "raisehand", "filmstrip", "feedback",
-            "stats", "shortcuts", "tileview", "whiteboard",
+          disableInviteFunctions: false,
+          toolbarButtons: [
+            "microphone", "camera", "desktop", "fullscreen",
+            "hangup", "chat", "raisehand", "tileview", "whiteboard",
           ],
         },
       });
 
+      // Hide loading on join OR after a 6s timeout (event may not always fire)
+      const timeout = setTimeout(() => setLoading(false), 6000);
+
       apiRef.current.addEventListeners({
-        videoConferenceJoined: () => setLoading(false),
-        videoConferenceLeft: () => window.close(),
+        videoConferenceJoined: () => { clearTimeout(timeout); setLoading(false); },
+        videoConferenceLeft: () => { clearTimeout(timeout); },
+        errorOccurred: () => { clearTimeout(timeout); setLoading(false); },
       });
-    } catch (err) {
-      setError("Could not initialize video call. Please try again.");
+    } catch {
+      setError("INIT_FAILED");
     }
   };
 
   if (error) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center space-y-4 p-8">
+        <div className="text-center space-y-5 p-8 max-w-sm">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
-          <p className="text-white font-semibold">{error}</p>
-          <Link href="/student/dashboard">
-            <Button variant="outline" className="text-white border-white/20">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
+          <div>
+            <p className="text-white font-semibold text-lg mb-2">Could not load video call</p>
+            <p className="text-slate-400 text-sm">
+              {error === "LOAD_FAILED"
+                ? "Failed to load Jitsi Meet script. This may be a network or browser extension issue."
+                : "Could not initialize the video room."}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <a href={directUrl} target="_blank" rel="noreferrer" className="block">
+              <Button variant="gradient" className="w-full">
+                <ExternalLink className="w-4 h-4" /> Open in Jitsi Directly
+              </Button>
+            </a>
+            <Link href="/student/dashboard">
+              <Button variant="outline" className="w-full text-white border-white/20">
+                <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -123,20 +139,38 @@ export function JitsiRoom({
           <p className="font-medium text-sm">{sessionTitle}</p>
           <p className="text-xs text-slate-400">{courseTitle}</p>
         </div>
-        {isModerator && (
-          <span className="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
-            Moderator
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {isModerator && (
+            <span className="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+              Moderator
+            </span>
+          )}
+          <a href={directUrl} target="_blank" rel="noreferrer" title="Open in new tab">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 w-8 h-8">
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Button>
+          </a>
+        </div>
       </div>
 
       {/* Jitsi container */}
       <div className="flex-1 relative">
         {loading && (
-          <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10">
-            <div className="text-center space-y-3">
+          <div
+            className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10 cursor-pointer"
+            onClick={() => setLoading(false)}
+          >
+            <div className="text-center space-y-4">
               <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mx-auto" />
-              <p className="text-slate-300 text-sm">Connecting to live class...</p>
+              <div>
+                <p className="text-slate-300 text-sm">Connecting to live class...</p>
+                <p className="text-slate-500 text-xs mt-1">Click anywhere to dismiss or open directly below</p>
+              </div>
+              <a href={directUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>
+                <Button size="sm" variant="outline" className="text-slate-300 border-slate-600 hover:bg-slate-800">
+                  <ExternalLink className="w-3.5 h-3.5" /> Open in Jitsi App
+                </Button>
+              </a>
             </div>
           </div>
         )}
