@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -22,7 +22,7 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultRole = searchParams.get("role") === "instructor" ? "INSTRUCTOR" : "STUDENT";
@@ -211,5 +211,13 @@ export default function RegisterPage() {
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-md h-96 rounded-2xl bg-white/10 animate-pulse" />}>
+      <RegisterForm />
+    </Suspense>
   );
 }
