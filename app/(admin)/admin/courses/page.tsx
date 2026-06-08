@@ -16,7 +16,7 @@ export default async function AdminCoursesPage() {
   const courses = await prisma.course.findMany({
     include: {
       instructor: { select: { name: true, email: true } },
-      _count: { select: { enrollments: true, lessons: true } },
+      _count: { select: { enrollments: true, sections: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -64,7 +64,7 @@ export default async function AdminCoursesPage() {
                       )}
                       <div>
                         <p className="font-medium text-slate-900 line-clamp-1">{course.title}</p>
-                        <p className="text-xs text-slate-400">{course._count.lessons} lessons</p>
+                        <p className="text-xs text-slate-400">{course._count.sections} sections</p>
                       </div>
                     </div>
                   </td>
