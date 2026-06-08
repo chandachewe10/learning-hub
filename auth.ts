@@ -75,14 +75,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async signIn({ user, account }) {
       if (account?.provider === "google") {
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email! },
-        });
-        if (!existingUser) {
-          await prisma.user.update({
+        try {
+          const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
-            data: { isApproved: true, role: "STUDENT" },
           });
+          // For existing users who signed up with email, ensure they are approved
+          // New Google users get the default STUDENT role and isApproved=true from the adapter
+          if (existingUser && !existingUser.isApproved) {
+            await prisma.user.update({
+              where: { email: user.email! },
+              data: { isApproved: true },
+            });
+          }
+        } catch {
+          // Non-fatal: proceed with sign-in
         }
       }
       return true;
