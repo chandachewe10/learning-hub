@@ -1,10 +1,20 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM_EMAIL || "noreply@learnhub.com";
 
+function getResend() {
+  if (!process.env.RESEND_API_KEY) return null;
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
+async function send(payload: Parameters<Resend["emails"]["send"]>[0]) {
+  const resend = getResend();
+  if (!resend) return { error: "Email service not configured" };
+  return resend.emails.send(payload);
+}
+
 export async function sendWelcomeEmail(to: string, name: string) {
-  return resend.emails.send({
+  return send({
     from: FROM,
     to,
     subject: "Welcome to LearnHub!",
@@ -26,7 +36,7 @@ export async function sendEnrollmentEmail(
   courseName: string,
   courseUrl: string
 ) {
-  return resend.emails.send({
+  return send({
     from: FROM,
     to,
     subject: `You're enrolled in "${courseName}"`,
@@ -48,7 +58,7 @@ export async function sendPaymentReceiptEmail(
   reference: string,
   description: string
 ) {
-  return resend.emails.send({
+  return send({
     from: FROM,
     to,
     subject: "Payment Confirmation — LearnHub",
@@ -67,7 +77,7 @@ export async function sendPaymentReceiptEmail(
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
-  return resend.emails.send({
+  return send({
     from: FROM,
     to,
     subject: "Reset your password — LearnHub",
@@ -83,7 +93,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
 }
 
 export async function sendInstructorApprovalEmail(to: string, name: string, approved: boolean) {
-  return resend.emails.send({
+  return send({
     from: FROM,
     to,
     subject: approved ? "Your instructor account is approved!" : "Instructor application update",
