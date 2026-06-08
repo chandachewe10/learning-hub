@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard, Users, BookOpen, DollarSign, BarChart3,
-  Tag, Settings, LogOut, GraduationCap, Bell, Percent
+  Tag, Settings, LogOut, GraduationCap, Bell, Percent, CreditCard, Share2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
@@ -15,6 +15,8 @@ const navItems = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/courses", label: "Courses", icon: BookOpen },
   { href: "/admin/payments", label: "Payments", icon: DollarSign },
+  { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
+  { href: "/admin/referrals", label: "Referrals", icon: Share2 },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/coupons", label: "Coupons", icon: Percent },

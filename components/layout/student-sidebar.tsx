@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard, BookOpen, Award, Bell, LogOut,
-  GraduationCap, ChevronLeft, ChevronRight, User, Search
+  GraduationCap, ChevronLeft, ChevronRight, User, Search, Crown, Share2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
@@ -15,6 +15,8 @@ const navItems = [
   { href: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/student/my-courses", label: "My Courses", icon: BookOpen },
   { href: "/courses", label: "Browse Courses", icon: Search },
+  { href: "/student/subscription", label: "Subscription", icon: Crown },
+  { href: "/student/referrals", label: "Referrals & Rewards", icon: Share2 },
   { href: "/student/certificates", label: "Certificates", icon: Award },
   { href: "/student/notifications", label: "Notifications", icon: Bell },
   { href: "/profile", label: "Profile", icon: User },

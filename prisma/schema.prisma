@@ -501,6 +501,22 @@ model Announcement {
   @@map("announcements")
 }
 
+// ─── Platform Settings ────────────────────────────────────────────────────────
+
+model PlatformSettings {
+  id                  String   @id @default(cuid())
+  commissionRate      Float    @default(30)
+  monthlyPrice        Float    @default(150)
+  yearlyPrice         Float    @default(1500)
+  referralReward      Float    @default(50)
+  referralRewardType  String   @default("FIXED")
+  currency            String   @default("ZMW")
+  platformName        String   @default("LearnHub")
+  updatedAt           DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+
 // ─── Referral ─────────────────────────────────────────────────────────────────
 
 model Referral {
