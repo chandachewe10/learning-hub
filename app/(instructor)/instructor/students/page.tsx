@@ -65,9 +65,9 @@ export default async function InstructorStudentsPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${e.progress}%` }} />
+                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${e.progressPct}%` }} />
                       </div>
-                      <span className="text-xs text-slate-500">{e.progress}%</span>
+                      <span className="text-xs text-slate-500">{e.progressPct}%</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-slate-500">{new Date(e.enrolledAt).toLocaleDateString()}</td>

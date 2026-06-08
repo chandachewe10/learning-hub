@@ -8,14 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatPrice } from "@/lib/utils";
 
-interface Coupon { id: string; code: string; type: string; value: number; maxUses: number | null; usedCount: number; expiresAt: string | null; isActive: boolean }
+interface Coupon { id: string; code: string; type: string; discount: number; maxUses: number | null; usedCount: number; expiresAt: string | null; isActive: boolean }
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
-  const [form, setForm] = useState({ code: "", type: "PERCENTAGE", value: "", maxUses: "", expiresAt: "" });
+  const [form, setForm] = useState({ code: "", type: "PERCENT", discount: "", maxUses: "", expiresAt: "" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -26,12 +26,12 @@ export default function AdminCouponsPage() {
     setSaving(true);
     const res = await fetch("/api/admin/coupons", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, value: parseFloat(form.value), maxUses: form.maxUses ? parseInt(form.maxUses) : null, expiresAt: form.expiresAt || null }),
+      body: JSON.stringify({ ...form, discount: parseFloat(form.discount), maxUses: form.maxUses ? parseInt(form.maxUses) : null, expiresAt: form.expiresAt || null }),
     });
     const data = await res.json();
     setCoupons(c => [data, ...c]);
     setAdding(false);
-    setForm({ code: "", type: "PERCENTAGE", value: "", maxUses: "", expiresAt: "" });
+    setForm({ code: "", type: "PERCENT", discount: "", maxUses: "", expiresAt: "" });
     setSaving(false);
   };
 
@@ -70,14 +70,14 @@ export default function AdminCouponsPage() {
               <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PERCENTAGE">Percentage (%)</SelectItem>
+                  <SelectItem value="PERCENT">Percentage (%)</SelectItem>
                   <SelectItem value="FIXED">Fixed Amount (ZMW)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Value</Label>
-              <Input value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))} type="number" placeholder={form.type === "PERCENTAGE" ? "20" : "50"} />
+              <Label>Discount Value</Label>
+              <Input value={form.discount} onChange={e => setForm(f => ({ ...f, discount: e.target.value }))} type="number" placeholder={form.type === "PERCENT" ? "20" : "50"} />
             </div>
             <div className="space-y-1.5">
               <Label>Max Uses (optional)</Label>
@@ -119,7 +119,7 @@ export default function AdminCouponsPage() {
                       </button>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{c.type === "PERCENTAGE" ? `${c.value}%` : formatPrice(c.value)}</td>
+                  <td className="px-4 py-3 text-slate-700">{c.type === "PERCENT" ? `${c.discount}%` : formatPrice(c.discount)}</td>
                   <td className="px-4 py-3 text-slate-600">{c.usedCount}{c.maxUses ? ` / ${c.maxUses}` : ""}</td>
                   <td className="px-4 py-3 text-slate-600">{c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : "Never"}</td>
                   <td className="px-4 py-3">

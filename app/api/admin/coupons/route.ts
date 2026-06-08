@@ -12,9 +12,9 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const { code, type, value, maxUses, expiresAt } = await req.json();
+  const { code, type, discount, maxUses, expiresAt } = await req.json();
   const coupon = await prisma.coupon.create({
-    data: { code, type, value, maxUses: maxUses ?? null, expiresAt: expiresAt ? new Date(expiresAt) : null },
+    data: { code, type, discount, maxUses: maxUses ?? null, expiresAt: expiresAt ? new Date(expiresAt) : null },
   });
   return NextResponse.json(coupon, { status: 201 });
 }
