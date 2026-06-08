@@ -19,9 +19,11 @@ export default async function InstructorEarningsPage() {
 
   const payments = await prisma.payment.findMany({
     where: { courseId: { in: courseIds }, status: "COMPLETED" },
-    include: { user: { select: { name: true, email: true } }, course: { select: { title: true } } },
+    include: { user: { select: { name: true, email: true } } },
     orderBy: { createdAt: "desc" },
   });
+
+  const courseMap = new Map(courses.map(c => [c.id, c.title]));
 
   const totalRevenue = payments.reduce((s, p) => s + p.amount, 0);
   const thisMonth = payments.filter(p => new Date(p.createdAt).getMonth() === new Date().getMonth()).reduce((s, p) => s + p.amount, 0);
@@ -70,7 +72,7 @@ export default async function InstructorEarningsPage() {
               {payments.map(p => (
                 <tr key={p.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 text-slate-700">{p.user.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.course?.title ?? "—"}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.courseId ? courseMap.get(p.courseId) ?? "—" : "—"}</td>
                   <td className="px-4 py-3 font-medium text-green-600">{formatPrice(p.amount)}</td>
                   <td className="px-4 py-3 text-slate-500">{new Date(p.createdAt).toLocaleDateString()}</td>
                 </tr>
