@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { Award, Download, Share2, BookOpen } from "lucide-react";
+import { Award, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CertificateCardActions } from "@/components/certificates/certificate-card-actions";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "My Certificates" };
@@ -80,14 +81,11 @@ export default async function CertificatesPage() {
                   </Badge>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs">
-                    <Download className="w-3.5 h-3.5" /> Download
-                  </Button>
-                  <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs">
-                    <Share2 className="w-3.5 h-3.5" /> Share
-                  </Button>
-                </div>
+                <CertificateCardActions
+                  certId={cert.certificateId}
+                  certTitle="Certificate of Completion"
+                  courseName={cert.course.title}
+                />
               </div>
             </div>
           ))}
