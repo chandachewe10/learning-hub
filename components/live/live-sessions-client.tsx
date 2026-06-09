@@ -39,7 +39,7 @@ export function LiveSessionsClient({ courses, sessions: initialSessions }: Props
     description: "",
     courseId: "",
     scheduledAt: "",
-    maxAttendees: "",
+    maxAttendees: "25",
   });
 
   const handleCreate = async () => {
@@ -58,7 +58,7 @@ export function LiveSessionsClient({ courses, sessions: initialSessions }: Props
       if (res.ok) {
         setSessions((prev) => [data.session, ...prev]);
         setShowForm(false);
-        setForm({ title: "", description: "", courseId: "", scheduledAt: "", maxAttendees: "" });
+        setForm({ title: "", description: "", courseId: "", scheduledAt: "", maxAttendees: "25" });
       }
     } finally {
       setLoading(false);
@@ -197,12 +197,12 @@ export function LiveSessionsClient({ courses, sessions: initialSessions }: Props
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Max Attendees (optional)</Label>
+              <Label>Max Attendees</Label>
               <Input
                 type="number"
-                placeholder="Leave blank for unlimited"
                 value={form.maxAttendees}
-                onChange={(e) => setForm((f) => ({ ...f, maxAttendees: e.target.value }))}
+                readOnly
+                className="bg-slate-50 cursor-not-allowed text-slate-500"
               />
             </div>
           </div>
