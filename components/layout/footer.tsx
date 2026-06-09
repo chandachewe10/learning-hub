@@ -61,13 +61,26 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
-          <p>© {new Date().getFullYear()} LearnHub. All rights reserved.</p>
-          <div className="flex gap-4">
-            <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-white transition-colors">Cookies</Link>
+        <div className="mt-12 pt-8 border-t border-slate-800 space-y-3 text-sm text-slate-500">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>© {new Date().getFullYear()} LearnHub. All rights reserved.</p>
+            <div className="flex gap-4">
+              <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
+              <Link href="#" className="hover:text-white transition-colors">Terms</Link>
+              <Link href="#" className="hover:text-white transition-colors">Cookies</Link>
+            </div>
           </div>
+          <p className="text-center text-slate-600 text-xs">
+            Powered, created and owned by{" "}
+            <a
+              href="https://macroit.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+            >
+              MACROIT INFORMATION TECHNOLOGY
+            </a>
+          </p>
         </div>
       </div>
     </footer>
