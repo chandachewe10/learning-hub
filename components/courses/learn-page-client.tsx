@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   CheckCircle, Circle, ChevronDown, ChevronLeft, ChevronRight,
-  MessageSquare, Send, FileText, PlayCircle, Award, Menu, X
+  MessageSquare, Send, FileText, PlayCircle, Award, Menu, X,
+  HelpCircle, RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,6 +92,16 @@ export function LearnPageClient({
   // Certificate state
   const [issuedCertId, setIssuedCertId] = useState<string | null>(enrollment.certificateId ?? null);
   const [claimingCert, setClaimingCert] = useState(false);
+
+  // Quiz state (keyed by lessonId so switching lessons resets state)
+  const [quizAnswers, setQuizAnswers]     = useState<Record<number, number>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+  // Reset quiz state whenever the lesson changes
+  useEffect(() => {
+    setQuizAnswers({});
+    setQuizSubmitted(false);
+  }, [currentLesson.id]);
 
   const allLessons = enrollment.course.sections.flatMap((s) => s.lessons);
   const currentIdx = allLessons.findIndex((l) => l.id === currentLesson.id);
@@ -268,6 +279,15 @@ export function LearnPageClient({
                 <Button variant="gradient">Download Document</Button>
               </a>
             </div>
+          ) : currentLesson.type === "QUIZ" ? (
+            <QuizPlayer
+              lesson={currentLesson}
+              quizAnswers={quizAnswers}
+              setQuizAnswers={setQuizAnswers}
+              quizSubmitted={quizSubmitted}
+              setQuizSubmitted={setQuizSubmitted}
+              onPassed={markComplete}
+            />
           ) : (
             <div className="flex items-center justify-center h-64">
               <div className="text-center text-slate-400">
@@ -380,6 +400,177 @@ export function LearnPageClient({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── Quiz Player ───────────────────────────────────────────────────── */
+
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+}
+
+function parseQuiz(content: string | null): QuizQuestion[] {
+  try {
+    if (!content) return [];
+    const parsed = JSON.parse(content);
+    if (Array.isArray(parsed)) return parsed as QuizQuestion[];
+    if (parsed && typeof parsed === "object" && "question" in parsed) return [parsed as QuizQuestion];
+  } catch { /* fall through */ }
+  return [];
+}
+
+function QuizPlayer({
+  lesson,
+  quizAnswers,
+  setQuizAnswers,
+  quizSubmitted,
+  setQuizSubmitted,
+  onPassed,
+}: {
+  lesson: Lesson;
+  quizAnswers: Record<number, number>;
+  setQuizAnswers: React.Dispatch<React.SetStateAction<Record<number, number>>>;
+  quizSubmitted: boolean;
+  setQuizSubmitted: React.Dispatch<React.SetStateAction<boolean>>;
+  onPassed: () => void;
+}) {
+  const questions = parseQuiz(lesson.content);
+
+  if (questions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-slate-400 space-y-3">
+        <HelpCircle className="w-14 h-14 opacity-40" />
+        <p>No quiz questions have been added yet.</p>
+      </div>
+    );
+  }
+
+  const allAnswered = questions.every((_, i) => quizAnswers[i] !== undefined);
+  const score       = questions.filter((q, i) => quizAnswers[i] === q.correctIndex).length;
+  const passMark    = Math.ceil(questions.length * 0.6); // 60 % to pass
+  const passed      = quizSubmitted && score >= passMark;
+
+  const handleSubmit = () => {
+    setQuizSubmitted(true);
+    if (score >= passMark) onPassed();
+  };
+
+  const handleRetry = () => {
+    setQuizAnswers({});
+    setQuizSubmitted(false);
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border">
+        <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+          <HelpCircle className="w-5 h-5 text-purple-600" />
+        </div>
+        <div>
+          <h2 className="font-semibold text-slate-900">{lesson.title}</h2>
+          <p className="text-xs text-slate-500">{questions.length} question{questions.length !== 1 ? "s" : ""} · Pass mark: {passMark}/{questions.length}</p>
+        </div>
+      </div>
+
+      {/* Result banner */}
+      {quizSubmitted && (
+        <div className={`rounded-xl p-4 flex items-center justify-between flex-wrap gap-3 ${
+          passed ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"
+        }`}>
+          <div className="flex items-center gap-3">
+            {passed
+              ? <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0" />
+              : <HelpCircle  className="w-6 h-6 text-red-500 shrink-0" />}
+            <div>
+              <p className={`font-semibold ${passed ? "text-emerald-800" : "text-red-800"}`}>
+                {passed ? "Well done! You passed 🎉" : "Not quite — try again!"}
+              </p>
+              <p className={`text-sm ${passed ? "text-emerald-600" : "text-red-600"}`}>
+                Score: {score} / {questions.length} ({Math.round((score / questions.length) * 100)}%)
+              </p>
+            </div>
+          </div>
+          {!passed && (
+            <Button size="sm" variant="outline" onClick={handleRetry} className="gap-2">
+              <RotateCcw className="w-4 h-4" /> Retry Quiz
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Questions */}
+      {questions.map((q, qi) => {
+        const chosen   = quizAnswers[qi];
+        const correct  = q.correctIndex;
+        const answered = chosen !== undefined;
+
+        return (
+          <div key={qi} className="bg-white rounded-xl border shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b bg-slate-50">
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">
+                Question {qi + 1}
+              </p>
+              <p className="font-semibold text-slate-900">{q.question}</p>
+            </div>
+            <div className="p-4 space-y-2">
+              {q.options.map((opt, oi) => {
+                let optClass = "border-slate-200 bg-white text-slate-700 hover:border-purple-400 hover:bg-purple-50 cursor-pointer";
+                if (!quizSubmitted && chosen === oi) {
+                  optClass = "border-purple-500 bg-purple-50 text-purple-800";
+                } else if (quizSubmitted) {
+                  if (oi === correct) {
+                    optClass = "border-emerald-500 bg-emerald-50 text-emerald-800";
+                  } else if (oi === chosen && chosen !== correct) {
+                    optClass = "border-red-400 bg-red-50 text-red-700";
+                  } else {
+                    optClass = "border-slate-200 bg-white text-slate-400 cursor-default";
+                  }
+                }
+
+                return (
+                  <button
+                    key={oi}
+                    type="button"
+                    disabled={quizSubmitted}
+                    onClick={() => !quizSubmitted && setQuizAnswers((prev) => ({ ...prev, [qi]: oi }))}
+                    className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${optClass}`}
+                  >
+                    <span className="font-semibold mr-2">{String.fromCharCode(65 + oi)}.</span>
+                    {opt}
+                    {quizSubmitted && oi === correct && (
+                      <CheckCircle className="w-4 h-4 text-emerald-600 inline ml-2 align-middle" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Submit / Retry */}
+      {!quizSubmitted ? (
+        <Button
+          className="w-full gap-2"
+          disabled={!allAnswered}
+          onClick={handleSubmit}
+        >
+          <CheckCircle className="w-4 h-4" />
+          Submit Quiz ({Object.keys(quizAnswers).length}/{questions.length} answered)
+        </Button>
+      ) : passed ? (
+        <div className="text-center text-sm text-emerald-700 font-medium py-2">
+          ✓ Quiz completed — this lesson has been marked as complete.
+        </div>
+      ) : (
+        <Button variant="outline" className="w-full gap-2" onClick={handleRetry}>
+          <RotateCcw className="w-4 h-4" /> Try Again
+        </Button>
+      )}
     </div>
   );
 }

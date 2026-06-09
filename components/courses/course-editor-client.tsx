@@ -484,7 +484,7 @@ export function CourseEditorClient({ course, categories }: Props) {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="VIDEO">📹 Video</SelectItem>
-                            <SelectItem value="DOCUMENT">📄 Document</SelectItem>
+                            {/* Document type removed */}
                             <SelectItem value="TEXT">📝 Text</SelectItem>
                             <SelectItem value="QUIZ">❓ Quiz</SelectItem>
                           </SelectContent>
