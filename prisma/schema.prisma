@@ -209,6 +209,13 @@ model Course {
   tags         String[]
   seoTitle     String?
   seoDesc      String?
+  // Certificate settings
+  hasCertificate     Boolean @default(false)
+  certTitle          String?
+  certBody           String?
+  certSignatory      String?
+  certSignatoryRole  String?
+  certAccentColor    String?
   instructorId String
   categoryId   String?
   createdAt    DateTime     @default(now())

@@ -31,6 +31,14 @@ export default async function LearnPage({ params }: Props) {
     },
   });
 
+  // Resolve any already-issued certificate for this enrollment
+  const issuedCert = enrollment
+    ? await prisma.certificate.findUnique({
+        where: { userId_courseId: { userId: session.user.id, courseId } },
+        select: { certificateId: true },
+      })
+    : null;
+
   if (!enrollment) redirect(`/courses`);
 
   const lesson = await prisma.lesson.findUnique({
@@ -52,7 +60,7 @@ export default async function LearnPage({ params }: Props) {
 
   return (
     <LearnPageClient
-      enrollment={enrollment}
+      enrollment={{ ...enrollment, certificateId: issuedCert?.certificateId ?? null }}
       currentLesson={lesson}
       userId={session.user.id}
       userName={session.user.name || ""}

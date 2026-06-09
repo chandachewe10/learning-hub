@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, Plus, Trash2, Video, FileText, GripVertical,
   Eye, EyeOff, Upload, CheckCircle, Save, Send, Lock, Unlock,
-  AlignLeft, HelpCircle, File, X, ChevronDown, ChevronUp
+  AlignLeft, HelpCircle, File, X, ChevronDown, ChevronUp, Award
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -52,6 +52,12 @@ interface Course {
   sections: Section[];
   thumbnail: string | null;
   previewVideo: string | null;
+  hasCertificate: boolean;
+  certTitle: string | null;
+  certBody: string | null;
+  certSignatory: string | null;
+  certSignatoryRole: string | null;
+  certAccentColor: string | null;
 }
 
 interface Category { id: string; name: string }
@@ -93,6 +99,16 @@ export function CourseEditorClient({ course, categories }: Props) {
   // confirm dialog state
   const [confirmDelete, setConfirmDelete]     = useState<{ type: "section" | "lesson"; sectionId: string; lessonId?: string; label: string } | null>(null);
   const [deleting, setDeleting]               = useState(false);
+
+  // certificate design state
+  const [hasCertificate, setHasCertificate]     = useState(course.hasCertificate);
+  const [certTitle, setCertTitle]               = useState(course.certTitle ?? "Certificate of Completion");
+  const [certBody, setCertBody]                 = useState(course.certBody ?? "This is to certify that the above named student has successfully completed the course and demonstrated commitment to learning.");
+  const [certSignatory, setCertSignatory]       = useState(course.certSignatory ?? "");
+  const [certSignatoryRole, setCertSignatoryRole] = useState(course.certSignatoryRole ?? "Course Instructor");
+  const [certAccentColor, setCertAccentColor]   = useState(course.certAccentColor ?? "#6366f1");
+  const [savingCert, setSavingCert]             = useState(false);
+  const [certSaved, setCertSaved]               = useState(false);
 
   /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -269,6 +285,30 @@ export function CourseEditorClient({ course, categories }: Props) {
     }
   };
 
+  /* ── Certificate settings ─────────────────────────────────────── */
+
+  const saveCertificateSettings = async () => {
+    setSavingCert(true);
+    try {
+      await fetch(`/api/instructor/courses/${course.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hasCertificate,
+          certTitle: certTitle.trim(),
+          certBody: certBody.trim(),
+          certSignatory: certSignatory.trim(),
+          certSignatoryRole: certSignatoryRole.trim(),
+          certAccentColor,
+        }),
+      });
+      setCertSaved(true);
+      setTimeout(() => setCertSaved(false), 2500);
+    } finally {
+      setSavingCert(false);
+    }
+  };
+
   /* ── Quiz helpers ─────────────────────────────────────────────── */
 
   const getQuiz = (lesson: Lesson): QuizData =>
@@ -392,6 +432,9 @@ export function CourseEditorClient({ course, categories }: Props) {
         <TabsList>
           <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="certificate" className="gap-1.5">
+            <Award className="w-4 h-4" />Certificate
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Curriculum tab ──────────────────────────────────────── */}
@@ -736,7 +779,225 @@ export function CourseEditorClient({ course, categories }: Props) {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ── Certificate tab ─────────────────────────────────────── */}
+        <TabsContent value="certificate" className="mt-6 space-y-6">
+
+          {/* Enable toggle */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-slate-900">Award Certificates</h3>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    Students who complete 100% of the course will receive a certificate.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hasCertificate}
+                  onClick={() => setHasCertificate((v) => !v)}
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${
+                    hasCertificate ? "bg-indigo-600" : "bg-slate-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                      hasCertificate ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {hasCertificate && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+              {/* ── Design form ───────────────────────────────── */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Certificate Design</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">Certificate Title</label>
+                    <Input
+                      value={certTitle}
+                      onChange={(e) => setCertTitle(e.target.value)}
+                      placeholder="Certificate of Completion"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">Body Text</label>
+                    <Textarea
+                      rows={3}
+                      value={certBody}
+                      onChange={(e) => setCertBody(e.target.value)}
+                      placeholder="This is to certify that..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 mb-1 block">Signatory Name</label>
+                      <Input
+                        value={certSignatory}
+                        onChange={(e) => setCertSignatory(e.target.value)}
+                        placeholder="e.g. Jane Doe"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 mb-1 block">Signatory Role</label>
+                      <Input
+                        value={certSignatoryRole}
+                        onChange={(e) => setCertSignatoryRole(e.target.value)}
+                        placeholder="e.g. Course Instructor"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">Accent Colour</label>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {["#6366f1","#0ea5e9","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#0f172a"].map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setCertAccentColor(c)}
+                          style={{ background: c }}
+                          className={`w-8 h-8 rounded-full transition-transform ${
+                            certAccentColor === c ? "ring-2 ring-offset-2 ring-slate-700 scale-110" : "hover:scale-105"
+                          }`}
+                        />
+                      ))}
+                      <label className="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer">
+                        <input
+                          type="color"
+                          value={certAccentColor}
+                          onChange={(e) => setCertAccentColor(e.target.value)}
+                          className="w-7 h-7 rounded cursor-pointer border border-slate-300"
+                        />
+                        Custom
+                      </label>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={saveCertificateSettings}
+                    loading={savingCert}
+                    className="gap-2 w-full"
+                  >
+                    {certSaved
+                      ? <><CheckCircle className="w-4 h-4" /> Saved!</>
+                      : <><Save className="w-4 h-4" /> Save Certificate Settings</>}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* ── Live preview ──────────────────────────────── */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Live Preview</p>
+                <CertificatePreview
+                  courseName={course.title}
+                  studentName="Student Name"
+                  certTitle={certTitle}
+                  certBody={certBody}
+                  certSignatory={certSignatory || "Instructor Name"}
+                  certSignatoryRole={certSignatoryRole}
+                  accentColor={certAccentColor}
+                  issuedDate={new Date().toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
+                  certId="PREVIEW-XXXX"
+                />
+              </div>
+            </div>
+          )}
+
+          {hasCertificate && (
+            <Card className="border-dashed border-indigo-300 bg-indigo-50/50">
+              <CardContent className="pt-5 pb-4">
+                <p className="text-sm text-indigo-700 font-medium">
+                  ✓ Certificates will be automatically issued to students when they reach 100% course progress.
+                  Students can view and download their certificate from their learn page.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+/* ─── Certificate preview component (editor use only) ──────────── */
+function CertificatePreview({
+  courseName, studentName, certTitle, certBody,
+  certSignatory, certSignatoryRole, accentColor, issuedDate, certId,
+}: {
+  courseName: string; studentName: string; certTitle: string; certBody: string;
+  certSignatory: string; certSignatoryRole: string; accentColor: string;
+  issuedDate: string; certId: string;
+}) {
+  return (
+    <div
+      className="relative rounded-2xl overflow-hidden shadow-2xl border-4 bg-white text-center select-none"
+      style={{ borderColor: accentColor, fontFamily: "Georgia, serif" }}
+    >
+      {/* Top accent bar */}
+      <div className="h-3 w-full" style={{ background: accentColor }} />
+
+      {/* Corner ornaments */}
+      <div className="absolute top-4 left-4 w-10 h-10 rounded-full opacity-10" style={{ background: accentColor }} />
+      <div className="absolute top-4 right-4 w-10 h-10 rounded-full opacity-10" style={{ background: accentColor }} />
+      <div className="absolute bottom-4 left-4 w-8 h-8 rounded-full opacity-10" style={{ background: accentColor }} />
+      <div className="absolute bottom-4 right-4 w-8 h-8 rounded-full opacity-10" style={{ background: accentColor }} />
+
+      <div className="px-8 py-6 space-y-4">
+        {/* Platform branding */}
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: accentColor }}>
+            <Award className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-bold text-lg tracking-wide" style={{ color: accentColor }}>LearnHub</span>
+        </div>
+
+        <div className="border-t border-b py-3 space-y-1" style={{ borderColor: accentColor + "44" }}>
+          <p className="text-2xl font-bold" style={{ color: accentColor }}>{certTitle}</p>
+          <p className="text-xs uppercase tracking-widest text-slate-500">of Achievement</p>
+        </div>
+
+        <div>
+          <p className="text-xs text-slate-500 mb-1">This is to certify that</p>
+          <p className="text-xl font-semibold text-slate-900 italic">{studentName}</p>
+        </div>
+
+        <p className="text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">{certBody}</p>
+
+        <div>
+          <p className="text-xs text-slate-500 mb-0.5">Course</p>
+          <p className="font-semibold text-slate-800">{courseName}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 pt-2 border-t" style={{ borderColor: accentColor + "33" }}>
+          <div>
+            <div className="w-16 h-px mx-auto mb-1" style={{ background: accentColor }} />
+            <p className="text-sm font-semibold text-slate-800">{certSignatory}</p>
+            <p className="text-xs text-slate-500">{certSignatoryRole}</p>
+          </div>
+          <div>
+            <div className="w-16 h-px mx-auto mb-1" style={{ background: accentColor }} />
+            <p className="text-sm font-semibold text-slate-800">{issuedDate}</p>
+            <p className="text-xs text-slate-500">Date Issued</p>
+          </div>
+        </div>
+
+        <p className="text-[10px] text-slate-400 pt-1">Certificate ID: {certId}</p>
+      </div>
+
+      {/* Bottom accent bar */}
+      <div className="h-2 w-full" style={{ background: accentColor }} />
     </div>
   );
 }

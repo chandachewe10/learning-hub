@@ -53,10 +53,12 @@ interface ProgressRecord {
 interface Enrollment {
   id: string;
   progressPct: number;
+  certificateId: string | null;
   progress: ProgressRecord[];
   course: {
     id: string;
     title: string;
+    hasCertificate: boolean;
     sections: Section[];
     instructor: { name: string | null; image: string | null };
   };
@@ -86,15 +88,38 @@ export function LearnPageClient({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Certificate state
+  const [issuedCertId, setIssuedCertId] = useState<string | null>(enrollment.certificateId ?? null);
+  const [claimingCert, setClaimingCert] = useState(false);
+
   const allLessons = enrollment.course.sections.flatMap((s) => s.lessons);
   const currentIdx = allLessons.findIndex((l) => l.id === currentLesson.id);
   const prevLesson = currentIdx > 0 ? allLessons[currentIdx - 1] : null;
   const nextLesson = currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
 
+  const claimCertificate = async () => {
+    if (issuedCertId || claimingCert) return;
+    setClaimingCert(true);
+    try {
+      const res = await fetch("/api/certificates/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollmentId: enrollment.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIssuedCertId(data.certificateId);
+      }
+    } finally {
+      setClaimingCert(false);
+    }
+  };
+
   const markComplete = async () => {
     if (completedLessons.has(currentLesson.id)) return;
-    setCompletedLessons((prev) => new Set([...prev, currentLesson.id]));
-    const newPct = ((completedLessons.size + 1) / allLessons.length) * 100;
+    const newCompleted = new Set([...completedLessons, currentLesson.id]);
+    setCompletedLessons(newCompleted);
+    const newPct = (newCompleted.size / allLessons.length) * 100;
     setProgressPct(newPct);
 
     await fetch("/api/progress", {
@@ -102,6 +127,11 @@ export function LearnPageClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ enrollmentId: enrollment.id, lessonId: currentLesson.id }),
     });
+
+    // Auto-issue certificate when course is fully complete
+    if (newPct >= 100 && enrollment.course.hasCertificate && !issuedCertId) {
+      await claimCertificate();
+    }
   };
 
   const handleVideoEnded = () => {
@@ -274,13 +304,30 @@ export function LearnPageClient({
                       Next <ChevronRight className="w-4 h-4" />
                     </Button>
                   </Link>
-                ) : isCompleted ? (
-                  <Link href={`/student/certificates`}>
-                    <Button size="sm" variant="gradient" className="gap-1">
-                      <Award className="w-4 h-4" /> Get Certificate
-                    </Button>
-                  </Link>
-                ) : null}
+                ) : (
+                  <>
+                    {/* Course complete — show certificate actions if enabled */}
+                    {enrollment.course.hasCertificate && (
+                      issuedCertId ? (
+                        <Link href={`/certificate/${issuedCertId}`} target="_blank">
+                          <Button size="sm" className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white">
+                            <Award className="w-4 h-4" /> View Certificate
+                          </Button>
+                        </Link>
+                      ) : progressPct >= 100 ? (
+                        <Button
+                          size="sm"
+                          className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
+                          onClick={claimCertificate}
+                          disabled={claimingCert}
+                        >
+                          <Award className="w-4 h-4" />
+                          {claimingCert ? "Generating…" : "Get Certificate"}
+                        </Button>
+                      ) : null
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
