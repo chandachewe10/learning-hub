@@ -5,17 +5,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { paymentId: string } }
+  { params }: { params: Promise<{ paymentId: string }> }
 ) {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { paymentId } = await params;
   const { action } = await req.json();
 
   const payment = await prisma.payment.findUnique({
-    where: { id: params.paymentId },
+    where: { id: paymentId },
   });
 
   if (!payment) {
