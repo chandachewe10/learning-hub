@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid input", details: error.issues }, { status: 400 });
     }
-    console.error("Payment error:", error);
+    console.error("[Lipila payment error]", error);
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Payment failed. Please try again.",
     }, { status: 500 });

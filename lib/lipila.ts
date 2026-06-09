@@ -36,19 +36,47 @@ export type LipilaPayload =
   | { type: "card"; data: CardPayload };
 
 async function lipilaRequest(endpoint: string, data: unknown) {
-  const response = await fetch(`${LIPILA_BASE}${endpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "x-api-key": process.env.LIPILA_API_KEY!,
-    },
-    body: JSON.stringify(data),
-  });
-  const json = await response.json();
-  if (!response.ok) {
-    throw new Error(json.message || `Lipila error: ${response.status}`);
+  const apiKey = process.env.LIPILA_API_KEY;
+  if (!apiKey || apiKey === "your-lipila-api-key") {
+    throw new Error(
+      "Payment gateway is not configured. Please contact support."
+    );
   }
+
+  let response: Response;
+  try {
+    response = await fetch(`${LIPILA_BASE}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify(data),
+    });
+  } catch (networkErr) {
+    throw new Error("Could not reach the payment gateway. Check your connection and try again.");
+  }
+
+  // Parse body safely — Lipila occasionally returns empty bodies on errors
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      `Payment gateway returned an unexpected response (HTTP ${response.status})${text ? `: ${text.slice(0, 120)}` : "."}`
+    );
+  }
+
+  if (!response.ok) {
+    const msg =
+      (json as Record<string, string>)?.message ||
+      (json as Record<string, string>)?.error ||
+      `Payment gateway error (${response.status})`;
+    throw new Error(msg);
+  }
+
   return json;
 }
 
