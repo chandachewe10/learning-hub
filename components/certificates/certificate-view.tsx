@@ -174,7 +174,7 @@ export function CertificateView(props: Props) {
                 <CheckCircle className="w-4 h-4" style={{ color: accentColor }} />
                 <p className="text-xs text-slate-400">
                   Certificate ID: <span className="font-mono font-semibold">{certId}</span>
-                  &nbsp;·&nbsp;Verify at learnhub.com/certificate/{certId}
+                  &nbsp;·&nbsp;Verify at learnhub.macroit.org/certificate/{certId}
                 </p>
               </div>
             </div>
