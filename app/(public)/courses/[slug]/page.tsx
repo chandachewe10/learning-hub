@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import {
   Star, Clock, Users, BookOpen, Globe, Award, PlayCircle,
-  FileText, Lock, CheckCircle, ChevronDown, Video
+  FileText, Lock, CheckCircle, ChevronDown, Video, Eye, XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,8 +37,10 @@ export default async function CourseDetailPage({ params }: Props) {
   const { slug } = await params;
   const session = await auth();
 
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const course = await prisma.course.findUnique({
-    where: { slug, status: "PUBLISHED" },
+    where: { slug, ...(isAdmin ? {} : { status: "PUBLISHED" }) },
     include: {
       instructor: {
         select: { id: true, name: true, image: true, bio: true, _count: { select: { courses: true } } },
@@ -80,6 +82,44 @@ export default async function CourseDetailPage({ params }: Props) {
 
   return (
     <div className="bg-slate-50 min-h-screen">
+      {/* Admin preview banner */}
+      {isAdmin && course.status !== "PUBLISHED" && (
+        <div className="bg-amber-500 text-white px-4 py-3">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Eye className="w-4 h-4 shrink-0" />
+              Admin Preview — this course is <strong className="uppercase">{course.status}</strong> and not visible to students
+            </div>
+            {course.status === "PENDING" && (
+              <div className="flex items-center gap-2">
+                <form action={async () => {
+                  "use server";
+                  await prisma.course.update({ where: { id: course.id }, data: { status: "PUBLISHED" } });
+                }}>
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" /> Approve & Publish
+                  </button>
+                </form>
+                <form action={async () => {
+                  "use server";
+                  await prisma.course.update({ where: { id: course.id }, data: { status: "DRAFT" } });
+                }}>
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    <XCircle className="w-3.5 h-3.5" /> Reject
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Course hero */}
       <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
