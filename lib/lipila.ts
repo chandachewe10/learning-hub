@@ -1,4 +1,5 @@
-const LIPILA_BASE = "https://api.lipila.dev";
+const LIPILA_BASE =
+  process.env.LIPILA_BASE_URL ?? "https://blz.lipila.io";
 
 export interface MomoPayload {
   referenceId: string;
