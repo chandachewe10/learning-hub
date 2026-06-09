@@ -155,21 +155,72 @@ export function CourseEditorClient({ course, categories }: Props) {
     );
   };
 
+  /* ── Direct Cloudinary upload (bypasses Vercel 4.5 MB limit) ─── */
+
+  const uploadToCloudinary = (
+    file: File,
+    folder: string,
+    resourceType: "video" | "raw",
+    onProgress: (pct: number) => void
+  ): Promise<{ url: string; duration?: number }> =>
+    new Promise(async (resolve, reject) => {
+      // 1. Get signed params from our server (tiny request)
+      const sigRes = await fetch("/api/upload/signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder, resourceType }),
+      });
+      if (!sigRes.ok) return reject(new Error("Could not get upload signature"));
+      const { signature, timestamp, apiKey, cloudName } = await sigRes.json();
+
+      // 2. Upload directly to Cloudinary via XHR so we get progress events
+      const form = new FormData();
+      form.append("file", file);
+      form.append("folder", folder);
+      form.append("api_key", apiKey);
+      form.append("timestamp", String(timestamp));
+      form.append("signature", signature);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`);
+
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      });
+
+      xhr.onload = () => {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve({ url: data.secure_url, duration: data.duration });
+          } else {
+            reject(new Error(data.error?.message ?? "Upload failed"));
+          }
+        } catch {
+          reject(new Error("Invalid response from Cloudinary"));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.send(form);
+    });
+
   /* ── Video upload ─────────────────────────────────────────────── */
 
   const uploadVideo = async (sectionId: string, lessonId: string, file: File) => {
     setUploadingLesson(lessonId);
     setLessonProgress((prev) => ({ ...prev, [lessonId]: 0 }));
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("type", "video");
     try {
-      const res  = await fetch("/api/upload/video", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.url) {
-        await updateLesson(sectionId, lessonId, { videoUrl: data.url, duration: data.duration ?? null });
-        setLessonProgress((prev) => ({ ...prev, [lessonId]: 100 }));
-      }
+      const data = await uploadToCloudinary(
+        file,
+        "lms/videos",
+        "video",
+        (pct) => setLessonProgress((prev) => ({ ...prev, [lessonId]: pct }))
+      );
+      await updateLesson(sectionId, lessonId, { videoUrl: data.url, duration: data.duration ?? null });
+      setLessonProgress((prev) => ({ ...prev, [lessonId]: 100 }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Video upload failed");
     } finally {
       setUploadingLesson(null);
       setTimeout(() => setLessonProgress((prev) => { const n = { ...prev }; delete n[lessonId]; return n; }), 2000);
@@ -180,14 +231,11 @@ export function CourseEditorClient({ course, categories }: Props) {
 
   const uploadDocument = async (sectionId: string, lessonId: string, file: File) => {
     setUploadingDoc(lessonId);
-    const formData = new FormData();
-    formData.append("file", file);
     try {
-      const res  = await fetch("/api/upload/document", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.url) {
-        await updateLesson(sectionId, lessonId, { documentUrl: data.url });
-      }
+      const data = await uploadToCloudinary(file, "lms/documents", "raw", () => {});
+      await updateLesson(sectionId, lessonId, { documentUrl: data.url });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Document upload failed");
     } finally {
       setUploadingDoc(null);
     }
