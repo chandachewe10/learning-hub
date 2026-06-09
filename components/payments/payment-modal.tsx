@@ -257,18 +257,25 @@ export function PaymentModal({
             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
               <CheckCircle className="w-8 h-8 text-emerald-600" />
             </div>
-            <div className="text-center">
-              <p className="font-semibold text-slate-900 text-lg">Payment Initiated!</p>
-              <p className="text-sm text-slate-500 mt-1">
+            <div className="text-center space-y-2">
+              <p className="font-semibold text-slate-900 text-lg">Payment Submitted!</p>
+              <p className="text-sm text-slate-500">
                 {payMethod === "momo"
-                  ? "Check your phone and approve the payment to complete enrollment."
+                  ? "Please approve the payment prompt on your phone."
                   : "Your payment is being processed."}
               </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700 text-left">
+                <p className="font-medium mb-0.5">What happens next?</p>
+                <p className="text-xs text-blue-600">
+                  Your enrollment will be activated automatically once the payment is confirmed.
+                  This usually takes a few minutes. You&apos;ll receive an in-app notification as soon as it&apos;s done.
+                </p>
+              </div>
               {referenceId && (
-                <p className="text-xs text-slate-400 mt-2">Reference: {referenceId}</p>
+                <p className="text-xs text-slate-400">Reference: <span className="font-mono">{referenceId}</span></p>
               )}
             </div>
-            <Button onClick={handleClose} className="w-full">Done</Button>
+            <Button onClick={handleClose} className="w-full">Got it</Button>
           </div>
         )}
 
