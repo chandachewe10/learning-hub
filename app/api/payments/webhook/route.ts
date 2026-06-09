@@ -87,7 +87,36 @@ export async function POST(req: NextRequest) {
         ).catch(console.error);
       }
 
-      // Create notification
+      // Credit referral reward on first purchase by this user
+      const referral = await prisma.referral.findFirst({
+        where: { referredId: payment.userId, reward: null },
+      });
+
+      if (referral) {
+        const settings = await prisma.platformSettings.findFirst();
+        const rewardAmount =
+          settings?.referralRewardType === "PERCENT"
+            ? (payment.amount * (settings.referralReward ?? 50)) / 100
+            : (settings?.referralReward ?? 50);
+
+        await prisma.referral.update({
+          where: { id: referral.id },
+          data: { reward: rewardAmount },
+        });
+
+        // Notify the referrer
+        await prisma.notification.create({
+          data: {
+            userId: referral.referrerId,
+            title: "Referral Reward Earned!",
+            message: `You earned ${payment.currency} ${rewardAmount.toFixed(2)} — someone you referred just made a purchase.`,
+            type: "PAYMENT",
+            link: "/student/referrals",
+          },
+        });
+      }
+
+      // Create notification for the buyer
       await prisma.notification.create({
         data: {
           userId: payment.userId,
