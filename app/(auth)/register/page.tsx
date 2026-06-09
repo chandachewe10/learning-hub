@@ -26,6 +26,7 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultRole = searchParams.get("role") === "instructor" ? "INSTRUCTOR" : "STUDENT";
+  const refCode = searchParams.get("ref") ?? undefined;
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -43,7 +44,7 @@ function RegisterForm() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, referralCode: refCode }),
       });
       const json = await res.json();
       if (!res.ok) {
