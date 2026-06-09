@@ -9,6 +9,7 @@ import {
   CheckCircle, ArrowRight, Sparkles, TrendingUp, Video,
   Clock, Award, BarChart3, GraduationCap, ChevronRight
 } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 
 const stats = [
   { label: "Active Students", value: "50,000+", icon: Users },
@@ -94,46 +95,53 @@ const testimonials = [
   },
 ];
 
-const plans = [
-  {
-    name: "Monthly",
-    price: "K299",
-    period: "/month",
-    description: "Perfect for getting started",
-    features: [
-      "Access all subscription courses",
-      "HD video streaming",
-      "Mobile & desktop access",
-      "Progress tracking",
-      "Community forums",
-      "Email support",
-    ],
-    popular: false,
-    cta: "Start Monthly",
-    variant: "outline" as const,
-  },
-  {
-    name: "Yearly",
-    price: "K199",
-    period: "/month",
-    billed: "Billed K2,388/year",
-    description: "Best value — save 33%",
-    features: [
-      "Everything in Monthly",
-      "Live class access",
-      "Downloadable resources",
-      "Course certificates",
-      "Priority support",
-      "Offline viewing",
-      "Coupon access",
-    ],
-    popular: true,
-    cta: "Start Yearly — Best Value",
-    variant: "gradient" as const,
-  },
-];
+export default async function HomePage() {
+  const settings = await prisma.platformSettings.findFirst().catch(() => null);
 
-export default function HomePage() {
+  const currency = settings?.currency ?? "ZMW";
+  const monthlyPrice = settings?.monthlyPrice ?? 299;
+  const yearlyPrice  = settings?.yearlyPrice  ?? 1500;
+  const monthlyEquiv = (yearlyPrice / 12).toFixed(0);
+  const saving       = Math.round((1 - yearlyPrice / (monthlyPrice * 12)) * 100);
+
+  const plans = [
+    {
+      name: "Monthly",
+      price: `${currency} ${monthlyPrice.toLocaleString()}`,
+      period: "/month",
+      description: "Perfect for getting started",
+      features: [
+        "Access all subscription courses",
+        "HD video streaming",
+        "Mobile & desktop access",
+        "Progress tracking",
+        "Community forums",
+        "Email support",
+      ],
+      popular: false,
+      cta: "Start Monthly",
+      variant: "outline" as const,
+    },
+    {
+      name: "Yearly",
+      price: `${currency} ${monthlyEquiv}`,
+      period: "/month",
+      billed: `Billed ${currency} ${yearlyPrice.toLocaleString()}/year`,
+      description: saving > 0 ? `Best value — save ${saving}%` : "Best value",
+      features: [
+        "Everything in Monthly",
+        "Live class access",
+        "Downloadable resources",
+        "Course certificates",
+        "Priority support",
+        "Offline viewing",
+        "Coupon access",
+      ],
+      popular: true,
+      cta: "Start Yearly — Best Value",
+      variant: "gradient" as const,
+    },
+  ];
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
