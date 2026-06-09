@@ -230,7 +230,11 @@ export function LearnPageClient({
             <div className="bg-white max-w-4xl mx-auto m-6 rounded-xl p-8 text-center space-y-4">
               <FileText className="w-12 h-12 text-indigo-600 mx-auto" />
               <h3 className="font-semibold text-slate-900">{currentLesson.title}</h3>
-              <a href={currentLesson.documentUrl} target="_blank" rel="noopener noreferrer">
+              <a
+                href={`/api/documents/signed?url=${encodeURIComponent(currentLesson.documentUrl)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button variant="gradient">Download Document</Button>
               </a>
             </div>

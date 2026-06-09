@@ -513,7 +513,7 @@ export function CourseEditorClient({ course, categories }: Props) {
                                 <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
                                   <File className="w-5 h-5 text-orange-500 shrink-0" />
                                   <a
-                                    href={lesson.documentUrl}
+                                    href={`/api/documents/signed?url=${encodeURIComponent(lesson.documentUrl)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex-1 text-xs text-indigo-600 hover:underline truncate"
