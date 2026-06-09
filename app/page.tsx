@@ -12,10 +12,10 @@ import {
 import { prisma } from "@/lib/prisma";
 
 const stats = [
-  { label: "Active Students", value: "50,000+", icon: Users },
-  { label: "Expert Courses", value: "2,500+", icon: BookOpen },
-  { label: "Top Instructors", value: "800+", icon: GraduationCap },
-  { label: "Certificates Issued", value: "120,000+", icon: Trophy },
+  { label: "Active Students", value: "500+", icon: Users },
+  { label: "Expert Courses", value: "500+", icon: BookOpen },
+  { label: "Top Instructors", value: "300+", icon: GraduationCap },
+  { label: "Certificates Issued", value: "100,000+", icon: Trophy },
 ];
 
 const categories = [
@@ -103,6 +103,9 @@ export default async function HomePage() {
   const yearlyPrice  = settings?.yearlyPrice  ?? 1500;
   const monthlyEquiv = (yearlyPrice / 12).toFixed(0);
   const saving       = Math.round((1 - yearlyPrice / (monthlyPrice * 12)) * 100);
+
+  // Random "joined this week" count shown on the hero widget (30–50)
+  const joinedThisWeek = Math.floor(Math.random() * (50 - 30 + 1)) + 30;
 
   const plans = [
     {
@@ -255,7 +258,7 @@ export default async function HomePage() {
                     <Users className="w-4 h-4 text-indigo-600" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-900">1,200 joined</p>
+                    <p className="text-xs font-semibold text-slate-900">{joinedThisWeek} joined</p>
                     <p className="text-xs text-slate-500">this week</p>
                   </div>
                 </div>
@@ -439,7 +442,7 @@ export default async function HomePage() {
             Start Your Learning Journey Today
           </h2>
           <p className="text-indigo-100 text-lg max-w-xl mx-auto mb-8">
-            Join over 50,000 students already learning on LearnHub. Pay with Mobile Money or Card.
+            Join over 500 students already learning on LearnHub. Pay with Mobile Money or Card.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">

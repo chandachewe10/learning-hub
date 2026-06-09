@@ -86,7 +86,7 @@ function RegisterForm() {
     <Card className="w-full max-w-md bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
       <CardHeader className="text-center pb-2">
         <CardTitle className="text-2xl font-bold text-white">Create your account</CardTitle>
-        <CardDescription className="text-slate-300">Join 50,000+ learners on LearnHub</CardDescription>
+        <CardDescription className="text-slate-300">Join 500+ learners on LearnHub</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
