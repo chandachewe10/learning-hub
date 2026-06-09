@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatPrice } from "@/lib/utils";
 
 interface Coupon { id: string; code: string; type: string; discount: number; maxUses: number | null; usedCount: number; expiresAt: string | null; isActive: boolean }
@@ -17,6 +18,8 @@ export default function AdminCouponsPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [form, setForm] = useState({ code: "", type: "PERCENT", discount: "", maxUses: "", expiresAt: "" });
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Coupon | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/coupons").then(r => r.json()).then(d => { setCoupons(Array.isArray(d) ? d : []); setLoading(false); });
@@ -35,10 +38,13 @@ export default function AdminCouponsPage() {
     setSaving(false);
   };
 
-  const del = async (id: string) => {
-    if (!confirm("Delete coupon?")) return;
-    await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
-    setCoupons(c => c.filter(x => x.id !== id));
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    await fetch(`/api/admin/coupons/${deleteTarget.id}`, { method: "DELETE" });
+    setCoupons(c => c.filter(x => x.id !== deleteTarget.id));
+    setDeleting(false);
+    setDeleteTarget(null);
   };
 
   const copy = (code: string) => {
@@ -128,7 +134,7 @@ export default function AdminCouponsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => del(c.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => setDeleteTarget(c)}><Trash2 className="w-3.5 h-3.5" /></Button>
                   </td>
                 </tr>
               ))}
@@ -137,6 +143,17 @@ export default function AdminCouponsPage() {
           </table>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        loading={deleting}
+        title="Delete coupon?"
+        description={`Coupon "${deleteTarget?.code}" will be permanently deleted and can no longer be used.`}
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Tag, Plus, Pencil, Trash2, Save, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Category { id: string; name: string; slug: string; icon: string | null; _count: { courses: number } }
 
@@ -15,6 +16,8 @@ export default function AdminCategoriesPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", icon: "" });
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/categories").then(r => r.json()).then(d => { setCategories(d); setLoading(false); });
@@ -38,10 +41,13 @@ export default function AdminCategoriesPage() {
     setSaving(false);
   };
 
-  const del = async (id: string) => {
-    if (!confirm("Delete this category?")) return;
-    await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
-    setCategories(c => c.filter(x => x.id !== id));
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    await fetch(`/api/admin/categories/${deleteTarget.id}`, { method: "DELETE" });
+    setCategories(c => c.filter(x => x.id !== deleteTarget.id));
+    setDeleting(false);
+    setDeleteTarget(null);
   };
 
   return (
@@ -106,7 +112,7 @@ export default function AdminCategoriesPage() {
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditId(cat.id); setAdding(false); setForm({ name: cat.name, icon: cat.icon || "" }); }}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700" onClick={() => del(cat.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700" onClick={() => setDeleteTarget(cat)}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -120,6 +126,16 @@ export default function AdminCategoriesPage() {
           </table>
         )}
       </div>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        loading={deleting}
+        title="Delete category?"
+        description={`"${deleteTarget?.name}" will be permanently deleted. Courses in this category will become uncategorised.`}
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

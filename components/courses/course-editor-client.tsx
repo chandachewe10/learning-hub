@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface QuizQuestion {
   question: string;
@@ -86,9 +87,12 @@ export function CourseEditorClient({ course, categories }: Props) {
   const [lessonProgress, setLessonProgress]   = useState<Record<string, number>>({});
   const [uploadingDoc, setUploadingDoc]       = useState<string | null>(null);
   const [expandedLesson, setExpandedLesson]   = useState<string | null>(null);
-  // quiz drafts keyed by lessonId
   const [quizDrafts, setQuizDrafts] = useState<Record<string, QuizData>>({});
   const [savingQuiz, setSavingQuiz]   = useState<string | null>(null);
+  const [uploadError, setUploadError]         = useState<string | null>(null);
+  // confirm dialog state
+  const [confirmDelete, setConfirmDelete]     = useState<{ type: "section" | "lesson"; sectionId: string; lessonId?: string; label: string } | null>(null);
+  const [deleting, setDeleting]               = useState(false);
 
   /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -110,9 +114,8 @@ export function CourseEditorClient({ course, categories }: Props) {
   };
 
   const deleteSection = async (sectionId: string) => {
-    if (!confirm("Delete this section and all its lessons?")) return;
-    await fetch(`/api/instructor/courses/${course.id}/sections/${sectionId}`, { method: "DELETE" });
-    setSections((prev) => prev.filter((s) => s.id !== sectionId));
+    const section = sections.find(s => s.id === sectionId);
+    setConfirmDelete({ type: "section", sectionId, label: section?.title ?? "this section" });
   };
 
   const addLesson = async (sectionId: string) => {
@@ -153,15 +156,31 @@ export function CourseEditorClient({ course, categories }: Props) {
   };
 
   const deleteLesson = async (sectionId: string, lessonId: string) => {
-    await fetch(
-      `/api/instructor/courses/${course.id}/sections/${sectionId}/lessons/${lessonId}`,
-      { method: "DELETE" }
-    );
-    setSections((prev) =>
-      prev.map((s) =>
-        s.id === sectionId ? { ...s, lessons: s.lessons.filter((l) => l.id !== lessonId) } : s
-      )
-    );
+    const lesson = sections.find(s => s.id === sectionId)?.lessons.find(l => l.id === lessonId);
+    setConfirmDelete({ type: "lesson", sectionId, lessonId, label: lesson?.title ?? "this lesson" });
+  };
+
+  const executeDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    if (confirmDelete.type === "section") {
+      await fetch(`/api/instructor/courses/${course.id}/sections/${confirmDelete.sectionId}`, { method: "DELETE" });
+      setSections((prev) => prev.filter((s) => s.id !== confirmDelete.sectionId));
+    } else if (confirmDelete.lessonId) {
+      await fetch(
+        `/api/instructor/courses/${course.id}/sections/${confirmDelete.sectionId}/lessons/${confirmDelete.lessonId}`,
+        { method: "DELETE" }
+      );
+      setSections((prev) =>
+        prev.map((s) =>
+          s.id === confirmDelete.sectionId
+            ? { ...s, lessons: s.lessons.filter((l) => l.id !== confirmDelete.lessonId) }
+            : s
+        )
+      );
+    }
+    setDeleting(false);
+    setConfirmDelete(null);
   };
 
   /* ── Direct Cloudinary upload (bypasses Vercel 4.5 MB limit) ─── */
@@ -229,7 +248,7 @@ export function CourseEditorClient({ course, categories }: Props) {
       await updateLesson(sectionId, lessonId, { videoUrl: data.url, duration: data.duration ?? null });
       setLessonProgress((prev) => ({ ...prev, [lessonId]: 100 }));
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Video upload failed");
+      setUploadError(err instanceof Error ? err.message : "Video upload failed. Please try again.");
     } finally {
       setUploadingLesson(null);
       setTimeout(() => setLessonProgress((prev) => { const n = { ...prev }; delete n[lessonId]; return n; }), 2000);
@@ -244,7 +263,7 @@ export function CourseEditorClient({ course, categories }: Props) {
       const data = await uploadToCloudinary(file, "lms/documents", "raw", () => {});
       await updateLesson(sectionId, lessonId, { documentUrl: data.url });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Document upload failed");
+      setUploadError(err instanceof Error ? err.message : "Document upload failed. Please try again.");
     } finally {
       setUploadingDoc(null);
     }
@@ -320,6 +339,33 @@ export function CourseEditorClient({ course, categories }: Props) {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {/* Upload error toast */}
+      {uploadError && (
+        <div className="fixed top-4 right-4 z-50 flex items-start gap-3 bg-red-600 text-white px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm">
+          <X className="w-4 h-4 mt-0.5 shrink-0" />
+          <span className="flex-1">{uploadError}</span>
+          <button onClick={() => setUploadError(null)} className="opacity-70 hover:opacity-100">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirm modal */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={executeDelete}
+        loading={deleting}
+        title={confirmDelete?.type === "section" ? "Delete section?" : "Delete lesson?"}
+        description={
+          confirmDelete?.type === "section"
+            ? `"${confirmDelete.label}" and all its lessons will be permanently deleted.`
+            : `"${confirmDelete?.label}" will be permanently deleted.`
+        }
+        confirmLabel="Delete"
+        variant="danger"
+      />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
